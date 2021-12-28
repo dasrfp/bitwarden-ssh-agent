@@ -131,55 +131,17 @@ def add_ssh_keys(session, items, keyname):
     Function to attempt to get keys from a vault item
     """
     for item in items:
-        try:
-            private_key_file = [k['value'] for k in item['fields']
-                                if k['name'] == keyname and k['type'] == 0][0]
-        except IndexError:
-            logging.warning('No "%s" field found for item %s', keyname, item['name'])
-            continue
-        except KeyError as e:
-            logging.debug('No key "%s" found in item %s - skipping', e.args[0], item['name'])
-            continue
-        logging.debug('Private key file declared')
 
         try:
-            private_key_id = [k['id'] for k in item['attachments']
-                              if k['fileName'] == private_key_file][0]
-        except IndexError:
-            logging.warning(
-                'No attachment called "%s" found for item %s',
-                private_key_file,
-                item['name']
-            )
-            continue
-        logging.debug('Private key ID found')
-
-        try:
-            ssh_add(session, item['id'], private_key_id)
+            ssh_add(session, item['id'], item['notes'])
         except subprocess.SubprocessError:
             logging.warning('Could not add key to the SSH agent')
 
 
-def ssh_add(session, item_id, key_id):
+def ssh_add(session, item_id, ssh_key):
     """
     Function to get the key contents from the Bitwarden vault
     """
-    logging.debug('Item ID: %s', item_id)
-    logging.debug('Key ID: %s', key_id)
-
-    proc_attachment = subprocess.run([
-            'bw',
-            'get',
-            'attachment', key_id,
-            '--itemid', item_id,
-            '--raw',
-            '--session', session
-        ],
-        stdout=subprocess.PIPE,
-        universal_newlines=True,
-        check=True,
-    )
-    ssh_key = proc_attachment.stdout
 
     logging.debug("Running ssh-add")
 
